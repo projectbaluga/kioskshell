@@ -1,9 +1,10 @@
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 
 namespace KioskShell;
 
-// Full-screen overlay with adaptive, touch-friendly buttons.
+// Full-screen overlay with adaptive, touch-friendly buttons and Fluent icons.
 public sealed class MenuForm : Form
 {
     private readonly KioskConfig _cfg;
@@ -23,6 +24,12 @@ public sealed class MenuForm : Form
     private readonly int _btnHeight;
     private readonly float _titleFontSize;
     private readonly float _btnFontSize;
+    private readonly float _iconFontSize;
+
+    // Segoe Fluent Icons glyphs (Windows 11)
+    private const string IconPower   = "\uE7E8"; // Power
+    private const string IconRestart = "\uE72C"; // Refresh / Restart
+    private const string IconCancel  = "\uE711"; // ChromeClose
 
     public MenuForm(KioskConfig cfg)
     {
@@ -32,31 +39,44 @@ public sealed class MenuForm : Form
         var screen = Screen.PrimaryScreen!.Bounds;
         _scale = Math.Clamp(screen.Height / 1080f, 0.65f, 1.6f);
 
-        _btnWidth  = (int)(Math.Min(screen.Width * 0.55f, 520) * _scale);
-        _btnHeight = (int)(96 * _scale);
+        _btnWidth     = (int)(Math.Min(screen.Width * 0.58f, 560) * _scale);
+        _btnHeight    = (int)(108 * _scale);
         _titleFontSize = 26f * _scale;
         _btnFontSize   = 20f * _scale;
+        _iconFontSize  = 26f * _scale;
 
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
         Bounds = screen;
         TopMost = true;
         ShowInTaskbar = false;
-        BackColor = Color.FromArgb(18, 20, 26);
+        BackColor = Color.FromArgb(16, 18, 24);
         Opacity = 0.97;
+
+        // Soft dark gradient-like background feel
+        Paint += (_, e) =>
+        {
+            using var brush = new LinearGradientBrush(
+                ClientRectangle,
+                Color.FromArgb(22, 24, 32),
+                Color.FromArgb(14, 16, 22),
+                LinearGradientMode.Vertical);
+            e.Graphics.FillRectangle(brush, ClientRectangle);
+        };
 
         // Title
         _title.Text = "What would you like to do?";
         _title.AutoSize = true;
-        _title.ForeColor = Color.FromArgb(240, 242, 245);
+        _title.ForeColor = Color.FromArgb(235, 238, 245);
         _title.Font = new Font("Segoe UI Semibold", _titleFontSize, FontStyle.Regular);
-        _title.Margin = new Padding(0, 0, 0, (int)(32 * _scale));
+        _title.Margin = new Padding(0, 0, 0, (int)(36 * _scale));
         _title.TextAlign = ContentAlignment.MiddleCenter;
+        _title.Width = _btnWidth;
 
-        // Buttons
-        _shutdown = MakeButton("Shut down", Color.FromArgb(190, 50, 50));
-        _restart  = MakeButton("Restart",   Color.FromArgb(50, 110, 190));
-        _cancel   = MakeButton("Cancel",    Color.FromArgb(55, 60, 72));
+        // Buttons with icons
+        _shutdown = MakeIconButton(IconPower,   "Shut down", Color.FromArgb(200, 55, 55));
+        _restart  = MakeIconButton(IconRestart, "Restart",   Color.FromArgb(45, 115, 200));
+        _cancel   = MakeIconButton(IconCancel,  "Cancel",    Color.FromArgb(52, 58, 72));
 
         var panel = new FlowLayoutPanel
         {
@@ -70,10 +90,6 @@ public sealed class MenuForm : Form
             Margin = new Padding(0)
         };
 
-        // Center the title properly
-        _title.Width = _btnWidth;
-        _title.TextAlign = ContentAlignment.MiddleCenter;
-
         panel.Controls.AddRange(new Control[] { _title, _shutdown, _restart, _cancel });
 
         var host = new TableLayoutPanel
@@ -86,7 +102,6 @@ public sealed class MenuForm : Form
         host.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         host.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         host.Controls.Add(panel, 0, 0);
-        host.SetCellPosition(panel, new TableLayoutPanelCellPosition(0, 0));
         panel.Anchor = AnchorStyles.None;
 
         Controls.Add(host);
@@ -115,9 +130,9 @@ public sealed class MenuForm : Form
         };
 
         // Hover effects
-        AddHoverEffect(_shutdown, Color.FromArgb(210, 60, 60), Color.FromArgb(190, 50, 50));
-        AddHoverEffect(_restart,  Color.FromArgb(60, 130, 210), Color.FromArgb(50, 110, 190));
-        AddHoverEffect(_cancel,   Color.FromArgb(70, 76, 90), Color.FromArgb(55, 60, 72));
+        AddHoverEffect(_shutdown, Color.FromArgb(220, 70, 70), Color.FromArgb(200, 55, 55));
+        AddHoverEffect(_restart,  Color.FromArgb(60, 135, 220), Color.FromArgb(45, 115, 200));
+        AddHoverEffect(_cancel,   Color.FromArgb(68, 74, 90), Color.FromArgb(52, 58, 72));
     }
 
     private void StartCountdown(string verb, string args)
@@ -131,7 +146,7 @@ public sealed class MenuForm : Form
 
         _shutdown.Visible = false;
         _restart.Visible = false;
-        _cancel.Text = "Cancel";
+        _cancel.Text = "  " + IconCancel + "   Cancel";
         _title.Text = $"{_verb} in {_left}…";
         _tick.Start();
     }
@@ -152,28 +167,70 @@ public sealed class MenuForm : Form
         }
     }
 
-    private Button MakeButton(string text, Color bg)
+    private Button MakeIconButton(string icon, string text, Color bg)
     {
         var btn = new Button
         {
-            Text = text,
+            Text = $"  {icon}   {text}",
             Size = new Size(_btnWidth, _btnHeight),
-            Font = new Font("Segoe UI Semibold", _btnFontSize, FontStyle.Regular),
+            Font = new Font("Segoe Fluent Icons", _iconFontSize, FontStyle.Regular),
             FlatStyle = FlatStyle.Flat,
             BackColor = bg,
             ForeColor = Color.White,
-            Margin = new Padding(0, 0, 0, (int)(16 * _scale)),
+            Margin = new Padding(0, 0, 0, (int)(18 * _scale)),
             UseVisualStyleBackColor = false,
             Cursor = Cursors.Hand,
-            TextAlign = ContentAlignment.MiddleCenter
+            TextAlign = ContentAlignment.MiddleCenter,
+            // Mix Fluent Icons + Segoe UI for clean look
         };
 
+        // Better: use owner-draw for proper mixed fonts
         btn.FlatAppearance.BorderSize = 0;
         btn.FlatAppearance.MouseOverBackColor = bg;
         btn.FlatAppearance.MouseDownBackColor = ControlPaint.Dark(bg, 0.12f);
 
-        // Soft rounded corners via Region
-        btn.Region = CreateRoundedRegion(btn.Width, btn.Height, (int)(14 * _scale));
+        // Soft rounded corners
+        btn.Region = CreateRoundedRegion(btn.Width, btn.Height, (int)(16 * _scale));
+
+        // Custom paint for icon + text with proper fonts
+        btn.Paint += (s, e) =>
+        {
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            e.Graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+
+            var g = e.Graphics;
+            var rect = btn.ClientRectangle;
+
+            // Background already drawn by button
+
+            // Icon
+            using var iconFont = new Font("Segoe Fluent Icons", _iconFontSize);
+            var iconSize = g.MeasureString(icon, iconFont);
+
+            // Text
+            using var textFont = new Font("Segoe UI Semibold", _btnFontSize);
+            var textSize = g.MeasureString(text, textFont);
+
+            float totalWidth = iconSize.Width + 14 * _scale + textSize.Width;
+            float startX = (rect.Width - totalWidth) / 2f;
+            float centerY = rect.Height / 2f;
+
+            // Draw icon
+            g.DrawString(icon, iconFont, Brushes.White,
+                startX,
+                centerY - iconSize.Height / 2f);
+
+            // Draw text
+            g.DrawString(text, textFont, Brushes.White,
+                startX + iconSize.Width + 14 * _scale,
+                centerY - textSize.Height / 2f);
+        };
+
+        // Hide default text rendering (we paint ourselves)
+        btn.Text = "";
+
+        // Store data for later (countdown updates)
+        btn.Tag = (icon, text);
 
         return btn;
     }
