@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -207,10 +208,19 @@ public sealed class MenuForm : Form
     // Custom button that draws Fluent icon + text cleanly
     private sealed class IconButton : Button
     {
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string IconGlyph { get; set; } = "";
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string LabelText { get; set; } = "";
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public float IconFontSize { get; set; } = 24f;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public float LabelFontSize { get; set; } = 18f;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public float ScaleFactor { get; set; } = 1f;
 
         public IconButton()
@@ -223,14 +233,12 @@ public sealed class MenuForm : Form
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            // Background
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
             e.Graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
 
             using (var bg = new SolidBrush(BackColor))
                 e.Graphics.FillRectangle(bg, ClientRectangle);
 
-            // Icon + Text
             using var iconFont = new Font("Segoe Fluent Icons", IconFontSize);
             using var textFont = new Font("Segoe UI Semibold", LabelFontSize);
 
