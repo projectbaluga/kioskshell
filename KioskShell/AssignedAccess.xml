@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Single-app kiosk running a desktop (Win32/.NET) app. Requires Windows 11 (v4 schema = 21H2+).
+     Replace KioskUser with your standard local kiosk account, which must already exist. -->
+<AssignedAccessConfiguration
+    xmlns="http://schemas.microsoft.com/AssignedAccess/2017/config"
+    xmlns:v4="http://schemas.microsoft.com/AssignedAccess/2021/config">
+  <Profiles>
+    <Profile Id="{6B1D5A2E-3C47-4F0B-9E2A-8D7C1F5A4B90}">
+      <KioskModeApp v4:ClassicAppPath="%ProgramFiles%\KioskShell\KioskShell.exe" />
+      <!-- Optional: change the admin exit from Ctrl+Alt+Del
+      <v4:BreakoutSequence Key="Ctrl+Alt+A"/> -->
+    </Profile>
+  </Profiles>
+  <Configs>
+    <Config>
+      <Account>KioskUser</Account>
+      <DefaultProfile Id="{6B1D5A2E-3C47-4F0B-9E2A-8D7C1F5A4B90}"/>
+    </Config>
+  </Configs>
+</AssignedAccessConfiguration>

@@ -1,0 +1,8 @@
+{
+  "Url": "https://example.com",
+  "EdgeZonePx": 28,
+  "DragDistancePx": 120,
+  "MenuTimeoutSeconds": 20,
+  "ShutdownDelaySeconds": 10,
+  "OfflineRetrySeconds": 10
+}
