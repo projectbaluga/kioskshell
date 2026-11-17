@@ -7,30 +7,40 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>KioskShell</AssemblyName>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationIcon>assets\icon.ico</ApplicationIcon>
 
-    <!-- Portable: one self-contained exe. No .NET install needed on the target PC. -->
+    <!-- True portable single-file -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Avoid pulling extra framework pieces -->
+    <PublishReadyToRun>false</PublishReadyToRun>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Floating version for convenience; pin to the exact version you tested before wide rollout. -->
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" />
+    <!-- WinForms WebView2 only. Pin a recent stable version. -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
   </ItemGroup>
 
-  <!-- Everything below is copied next to the exe in the publish folder = the portable package. -->
+  <!-- Exclude WPF assemblies — we only use WinForms -->
   <ItemGroup>
-    <None Update="kiosk.json"         CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Update="README.md"          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Update="Manage-Kiosk.ps1"   CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Update="assets\**\*"        CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <PackageReference Update="Microsoft.Web.WebView2" ExcludeAssets="" />
+  </ItemGroup>
+
+  <!-- Files that must sit next to the exe in the portable folder -->
+  <ItemGroup>
+    <None Update="kiosk.json"       CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="README.md"        CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Manage-Kiosk.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="assets\**\*"      CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

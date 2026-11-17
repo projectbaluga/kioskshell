@@ -13,12 +13,22 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Publish portable build
-        run: dotnet publish KioskShell/KioskShell.csproj -c Release -o portable/KioskShell-Portable
+      - name: Publish portable single-file build
+        run: |
+          dotnet publish KioskShell/KioskShell.csproj -c Release -o portable/KioskShell-Portable -p:PublishSingleFile=true -p:SelfContained=true -p:IncludeNativeLibrariesForSelfExtract=true
 
-      - name: Show what was produced
+      - name: Clean extra files (keep only what end-users need)
         shell: pwsh
-        run: Get-ChildItem portable/KioskShell-Portable -Recurse | Select-Object FullName, Length
+        run: |
+          $dir = "portable/KioskShell-Portable"
+          # Remove framework/runtime noise that sometimes leaks out of single-file
+          Get-ChildItem $dir -Recurse -Include *.pdb,*.xml,*.deps.json | Remove-Item -Force -ErrorAction SilentlyContinue
+          # Drop WPF WebView2 if present
+          Get-ChildItem $dir -Filter "Microsoft.Web.WebView2.Wpf*" -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
+          # Remove empty runtimes folders if any
+          Get-ChildItem $dir -Directory -Recurse | Where-Object { $_.GetFiles('*','AllDirectories').Count -eq 0 } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host "--- Final package contents ---"
+          Get-ChildItem $dir -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
 
       - uses: actions/upload-artifact@v4
         with:
