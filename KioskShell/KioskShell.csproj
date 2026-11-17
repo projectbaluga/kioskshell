@@ -7,16 +7,30 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>KioskShell</AssemblyName>
+    <Version>1.1.0</Version>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationIcon>assets\icon.ico</ApplicationIcon>
+
+    <!-- Portable: one self-contained exe. No .NET install needed on the target PC. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Floating version for convenience; pin to the exact version you tested before deploying. -->
+    <!-- Floating version for convenience; pin to the exact version you tested before wide rollout. -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" />
   </ItemGroup>
 
+  <!-- Everything below is copied next to the exe in the publish folder = the portable package. -->
   <ItemGroup>
-    <None Update="kiosk.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="kiosk.json"         CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="README.md"          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Manage-Kiosk.ps1"   CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="assets\**\*"        CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

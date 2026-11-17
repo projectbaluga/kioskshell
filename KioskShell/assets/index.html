@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KioskShell</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid; place-items: center; text-align: center;
+    background: radial-gradient(circle at 50% 30%, #1f2a3a, #0b0f14 70%);
+    color: #e8eef5; font-family: "Segoe UI", system-ui, sans-serif;
+    user-select: none; -webkit-user-select: none;
+  }
+  h1 { font-size: clamp(32px, 6vw, 72px); font-weight: 600; margin: 0 0 12px; }
+  p  { font-size: clamp(18px, 2.4vw, 28px); opacity: .75; margin: 6px 0; }
+  #clock { font-size: clamp(48px, 10vw, 120px); font-weight: 300; margin-top: 28px; }
+  .hint { position: fixed; top: 0; left: 0; right: 0; padding: 10px; font-size: 16px; opacity: .55; }
+</style>
+</head>
+<body>
+  <div class="hint">▼ Drag down from the top edge for the power menu</div>
+  <main>
+    <h1>KioskShell is running</h1>
+    <p>This is the sample page. Set <b>Url</b> in <b>kiosk.json</b> to show your own site.</p>
+    <div id="clock"></div>
+  </main>
+<script>
+  const el = document.getElementById('clock');
+  const tick = () => { el.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); };
+  tick(); setInterval(tick, 1000);
+</script>
+</body>
+</html>

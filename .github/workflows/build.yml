@@ -1,0 +1,26 @@
+name: build-kioskshell-portable
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish portable build
+        run: dotnet publish KioskShell/KioskShell.csproj -c Release -o portable/KioskShell-Portable
+
+      - name: Show what was produced
+        shell: pwsh
+        run: Get-ChildItem portable/KioskShell-Portable -Recurse | Select-Object FullName, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KioskShell-Portable
+          path: portable

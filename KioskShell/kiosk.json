@@ -1,5 +1,7 @@
 {
-  "Url": "https://example.com",
+  // Web address to show. Also accepts a page from the assets folder, e.g. "assets/index.html"
+  "Url": "assets/index.html",
+
   "EdgeZonePx": 28,
   "DragDistancePx": 120,
   "MenuTimeoutSeconds": 20,
