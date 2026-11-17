@@ -3,6 +3,10 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   build:
     runs-on: windows-latest
@@ -21,11 +25,8 @@ jobs:
         shell: pwsh
         run: |
           $dir = "portable/KioskShell-Portable"
-          # Remove framework/runtime noise that sometimes leaks out of single-file
           Get-ChildItem $dir -Recurse -Include *.pdb,*.xml,*.deps.json | Remove-Item -Force -ErrorAction SilentlyContinue
-          # Drop WPF WebView2 if present
           Get-ChildItem $dir -Filter "Microsoft.Web.WebView2.Wpf*" -Recurse | Remove-Item -Force -ErrorAction SilentlyContinue
-          # Remove empty runtimes folders if any
           Get-ChildItem $dir -Directory -Recurse | Where-Object { $_.GetFiles('*','AllDirectories').Count -eq 0 } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
           Write-Host "--- Final package contents ---"
           Get-ChildItem $dir -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
@@ -34,3 +35,33 @@ jobs:
         with:
           name: KioskShell-Portable
           path: portable
+
+      - name: Delete previous workflow runs
+        if: success()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $repo = "${{ github.repository }}"
+          $current = ${{ github.run_id }}
+          Write-Host "Current run id: $current"
+
+          # List all completed runs of this workflow (keep the current one)
+          $runs = gh api "repos/$repo/actions/runs?per_page=100" --jq '.workflow_runs[] | select(.status=="completed") | .id' 2>$null
+          if (-not $runs) {
+            Write-Host "No previous runs found (or API returned empty)."
+            exit 0
+          }
+
+          foreach ($id in $runs) {
+            if ($id -eq $current) { continue }
+            Write-Host "Deleting workflow run $id ..."
+            gh api -X DELETE "repos/$repo/actions/runs/$id" 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "  Deleted $id"
+            } else {
+              Write-Host "  Could not delete $id (may already be gone or insufficient permission)"
+            }
+          }
+
+          Write-Host "Cleanup done. Only the current run should remain."
