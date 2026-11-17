@@ -9,9 +9,9 @@ public sealed class MenuForm : Form
 {
     private readonly KioskConfig _cfg;
     private readonly Label _title = new();
-    private readonly Button _shutdown;
-    private readonly Button _restart;
-    private readonly Button _cancel;
+    private readonly IconButton _shutdown;
+    private readonly IconButton _restart;
+    private readonly IconButton _cancel;
     private readonly System.Windows.Forms.Timer _idle = new();
     private readonly System.Windows.Forms.Timer _tick = new();
     private bool _counting;
@@ -39,8 +39,8 @@ public sealed class MenuForm : Form
         var screen = Screen.PrimaryScreen!.Bounds;
         _scale = Math.Clamp(screen.Height / 1080f, 0.65f, 1.6f);
 
-        _btnWidth     = (int)(Math.Min(screen.Width * 0.58f, 560) * _scale);
-        _btnHeight    = (int)(108 * _scale);
+        _btnWidth      = (int)(Math.Min(screen.Width * 0.58f, 560) * _scale);
+        _btnHeight     = (int)(108 * _scale);
         _titleFontSize = 26f * _scale;
         _btnFontSize   = 20f * _scale;
         _iconFontSize  = 26f * _scale;
@@ -53,7 +53,7 @@ public sealed class MenuForm : Form
         BackColor = Color.FromArgb(16, 18, 24);
         Opacity = 0.97;
 
-        // Soft dark gradient-like background feel
+        // Soft dark gradient background
         Paint += (_, e) =>
         {
             using var brush = new LinearGradientBrush(
@@ -146,7 +146,6 @@ public sealed class MenuForm : Form
 
         _shutdown.Visible = false;
         _restart.Visible = false;
-        _cancel.Text = "  " + IconCancel + "   Cancel";
         _title.Text = $"{_verb} in {_left}…";
         _tick.Start();
     }
@@ -167,75 +166,27 @@ public sealed class MenuForm : Form
         }
     }
 
-    private Button MakeIconButton(string icon, string text, Color bg)
+    private IconButton MakeIconButton(string icon, string text, Color bg)
     {
-        var btn = new Button
+        var btn = new IconButton
         {
-            Text = $"  {icon}   {text}",
+            IconGlyph = icon,
+            LabelText = text,
             Size = new Size(_btnWidth, _btnHeight),
-            Font = new Font("Segoe Fluent Icons", _iconFontSize, FontStyle.Regular),
-            FlatStyle = FlatStyle.Flat,
             BackColor = bg,
             ForeColor = Color.White,
             Margin = new Padding(0, 0, 0, (int)(18 * _scale)),
-            UseVisualStyleBackColor = false,
             Cursor = Cursors.Hand,
-            TextAlign = ContentAlignment.MiddleCenter,
-            // Mix Fluent Icons + Segoe UI for clean look
+            IconFontSize = _iconFontSize,
+            LabelFontSize = _btnFontSize,
+            ScaleFactor = _scale
         };
 
-        // Better: use owner-draw for proper mixed fonts
-        btn.FlatAppearance.BorderSize = 0;
-        btn.FlatAppearance.MouseOverBackColor = bg;
-        btn.FlatAppearance.MouseDownBackColor = ControlPaint.Dark(bg, 0.12f);
-
-        // Soft rounded corners
         btn.Region = CreateRoundedRegion(btn.Width, btn.Height, (int)(16 * _scale));
-
-        // Custom paint for icon + text with proper fonts
-        btn.Paint += (s, e) =>
-        {
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            e.Graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-
-            var g = e.Graphics;
-            var rect = btn.ClientRectangle;
-
-            // Background already drawn by button
-
-            // Icon
-            using var iconFont = new Font("Segoe Fluent Icons", _iconFontSize);
-            var iconSize = g.MeasureString(icon, iconFont);
-
-            // Text
-            using var textFont = new Font("Segoe UI Semibold", _btnFontSize);
-            var textSize = g.MeasureString(text, textFont);
-
-            float totalWidth = iconSize.Width + 14 * _scale + textSize.Width;
-            float startX = (rect.Width - totalWidth) / 2f;
-            float centerY = rect.Height / 2f;
-
-            // Draw icon
-            g.DrawString(icon, iconFont, Brushes.White,
-                startX,
-                centerY - iconSize.Height / 2f);
-
-            // Draw text
-            g.DrawString(text, textFont, Brushes.White,
-                startX + iconSize.Width + 14 * _scale,
-                centerY - textSize.Height / 2f);
-        };
-
-        // Hide default text rendering (we paint ourselves)
-        btn.Text = "";
-
-        // Store data for later (countdown updates)
-        btn.Tag = (icon, text);
-
         return btn;
     }
 
-    private static void AddHoverEffect(Button btn, Color hover, Color normal)
+    private static void AddHoverEffect(IconButton btn, Color hover, Color normal)
     {
         btn.MouseEnter += (_, _) => btn.BackColor = hover;
         btn.MouseLeave += (_, _) => btn.BackColor = normal;
@@ -251,5 +202,55 @@ public sealed class MenuForm : Form
         path.AddArc(0, height - d, d, d, 90, 90);
         path.CloseFigure();
         return new Region(path);
+    }
+
+    // Custom button that draws Fluent icon + text cleanly
+    private sealed class IconButton : Button
+    {
+        public string IconGlyph { get; set; } = "";
+        public string LabelText { get; set; } = "";
+        public float IconFontSize { get; set; } = 24f;
+        public float LabelFontSize { get; set; } = 18f;
+        public float ScaleFactor { get; set; } = 1f;
+
+        public IconButton()
+        {
+            FlatStyle = FlatStyle.Flat;
+            FlatAppearance.BorderSize = 0;
+            UseVisualStyleBackColor = false;
+            Text = ""; // we paint everything ourselves
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            // Background
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            e.Graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+
+            using (var bg = new SolidBrush(BackColor))
+                e.Graphics.FillRectangle(bg, ClientRectangle);
+
+            // Icon + Text
+            using var iconFont = new Font("Segoe Fluent Icons", IconFontSize);
+            using var textFont = new Font("Segoe UI Semibold", LabelFontSize);
+
+            var iconSize = e.Graphics.MeasureString(IconGlyph, iconFont);
+            var textSize = e.Graphics.MeasureString(LabelText, textFont);
+
+            float gap = 14f * ScaleFactor;
+            float totalWidth = iconSize.Width + gap + textSize.Width;
+            float startX = (ClientRectangle.Width - totalWidth) / 2f;
+            float centerY = ClientRectangle.Height / 2f;
+
+            using var brush = new SolidBrush(ForeColor);
+
+            e.Graphics.DrawString(IconGlyph, iconFont, brush,
+                startX,
+                centerY - iconSize.Height / 2f);
+
+            e.Graphics.DrawString(LabelText, textFont, brush,
+                startX + iconSize.Width + gap,
+                centerY - textSize.Height / 2f);
+        }
     }
 }
