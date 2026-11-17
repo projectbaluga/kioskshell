@@ -38,7 +38,6 @@
   <!-- Files that must sit next to the exe in the portable folder -->
   <ItemGroup>
     <None Update="kiosk.json"       CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Update="README.md"        CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="Manage-Kiosk.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="assets\**\*"      CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
