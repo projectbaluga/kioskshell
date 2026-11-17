@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KioskShell;
 
@@ -79,6 +80,26 @@ public sealed class KioskConfig
         }
         catch (Exception ex) { Log.Write("Config error: " + ex.Message); }
         return new();
+    }
+
+    public bool Save()
+    {
+        try
+        {
+            var path = Path.Combine(AppPaths.BaseDir, "kiosk.json");
+            var opts = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            };
+            File.WriteAllText(path, JsonSerializer.Serialize(this, opts));
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Write("Config save error: " + ex.Message);
+            return false;
+        }
     }
 }
 

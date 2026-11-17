@@ -100,8 +100,15 @@ public sealed class KioskForm : Form
 
     private void Navigate()
     {
-        try { _web.CoreWebView2.Navigate(ResolveUrl()); }
+        try { _web.CoreWebView2?.Navigate(ResolveUrl()); }
         catch (Exception ex) { Log.Write("Navigate failed: " + ex.Message); ShowOffline(); }
+    }
+
+    /// <summary>Called when Settings saves a new URL.</summary>
+    public void ApplyNewUrl(string url)
+    {
+        _cfg.Url = url?.Trim() ?? "";
+        Navigate();
     }
 
     private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
@@ -115,6 +122,7 @@ public sealed class KioskForm : Form
 
     private void ShowOffline()
     {
+        if (_web.CoreWebView2 == null) return;
         _web.CoreWebView2.NavigateToString(LoadOfflineHtml());
         _retry.Stop();
         _retry.Start();
@@ -142,7 +150,7 @@ public sealed class KioskForm : Form
     private void ShowMenu()
     {
         if (_menu is { IsDisposed: false }) return;
-        _menu = new MenuForm(_cfg);
+        _menu = new MenuForm(_cfg, this);
         _menu.FormClosed += (_, _) => { _menu = null; Activate(); };
         _menu.Show(this);
     }

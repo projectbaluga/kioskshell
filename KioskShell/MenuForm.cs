@@ -9,7 +9,9 @@ namespace KioskShell;
 public sealed class MenuForm : Form
 {
     private readonly KioskConfig _cfg;
+    private readonly KioskForm _owner;
     private readonly Label _title = new();
+    private readonly IconButton _settings;
     private readonly IconButton _shutdown;
     private readonly IconButton _restart;
     private readonly IconButton _cancel;
@@ -28,23 +30,25 @@ public sealed class MenuForm : Form
     private readonly float _iconFontSize;
 
     // Segoe Fluent Icons glyphs (Windows 11)
-    private const string IconPower   = "\uE7E8"; // Power
-    private const string IconRestart = "\uE72C"; // Refresh / Restart
-    private const string IconCancel  = "\uE711"; // ChromeClose
+    private const string IconSettings = "\uE713"; // Settings
+    private const string IconPower    = "\uE7E8"; // Power
+    private const string IconRestart  = "\uE72C"; // Refresh / Restart
+    private const string IconCancel   = "\uE711"; // ChromeClose
 
-    public MenuForm(KioskConfig cfg)
+    public MenuForm(KioskConfig cfg, KioskForm owner)
     {
         _cfg = cfg;
+        _owner = owner;
 
         // Calculate scale from screen height (reference: 1080p)
         var screen = Screen.PrimaryScreen!.Bounds;
         _scale = Math.Clamp(screen.Height / 1080f, 0.65f, 1.6f);
 
         _btnWidth      = (int)(Math.Min(screen.Width * 0.58f, 560) * _scale);
-        _btnHeight     = (int)(108 * _scale);
+        _btnHeight     = (int)(100 * _scale);
         _titleFontSize = 26f * _scale;
-        _btnFontSize   = 20f * _scale;
-        _iconFontSize  = 26f * _scale;
+        _btnFontSize   = 19f * _scale;
+        _iconFontSize  = 24f * _scale;
 
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
@@ -70,14 +74,15 @@ public sealed class MenuForm : Form
         _title.AutoSize = true;
         _title.ForeColor = Color.FromArgb(235, 238, 245);
         _title.Font = new Font("Segoe UI Semibold", _titleFontSize, FontStyle.Regular);
-        _title.Margin = new Padding(0, 0, 0, (int)(36 * _scale));
+        _title.Margin = new Padding(0, 0, 0, (int)(28 * _scale));
         _title.TextAlign = ContentAlignment.MiddleCenter;
         _title.Width = _btnWidth;
 
         // Buttons with icons
-        _shutdown = MakeIconButton(IconPower,   "Shut down", Color.FromArgb(200, 55, 55));
-        _restart  = MakeIconButton(IconRestart, "Restart",   Color.FromArgb(45, 115, 200));
-        _cancel   = MakeIconButton(IconCancel,  "Cancel",    Color.FromArgb(52, 58, 72));
+        _settings = MakeIconButton(IconSettings, "Settings",  Color.FromArgb(60, 70, 90));
+        _shutdown = MakeIconButton(IconPower,    "Shut down", Color.FromArgb(200, 55, 55));
+        _restart  = MakeIconButton(IconRestart,  "Restart",   Color.FromArgb(45, 115, 200));
+        _cancel   = MakeIconButton(IconCancel,   "Cancel",    Color.FromArgb(52, 58, 72));
 
         var panel = new FlowLayoutPanel
         {
@@ -91,7 +96,7 @@ public sealed class MenuForm : Form
             Margin = new Padding(0)
         };
 
-        panel.Controls.AddRange(new Control[] { _title, _shutdown, _restart, _cancel });
+        panel.Controls.AddRange(new Control[] { _title, _settings, _shutdown, _restart, _cancel });
 
         var host = new TableLayoutPanel
         {
@@ -108,6 +113,7 @@ public sealed class MenuForm : Form
         Controls.Add(host);
 
         // Events
+        _settings.Click += (_, _) => OpenSettings();
         _shutdown.Click += (_, _) => StartCountdown("Shutting down", "/s /full");
         _restart.Click  += (_, _) => StartCountdown("Restarting", "/r");
         _cancel.Click   += (_, _) =>
@@ -131,9 +137,27 @@ public sealed class MenuForm : Form
         };
 
         // Hover effects
+        AddHoverEffect(_settings, Color.FromArgb(75, 85, 110), Color.FromArgb(60, 70, 90));
         AddHoverEffect(_shutdown, Color.FromArgb(220, 70, 70), Color.FromArgb(200, 55, 55));
         AddHoverEffect(_restart,  Color.FromArgb(60, 135, 220), Color.FromArgb(45, 115, 200));
         AddHoverEffect(_cancel,   Color.FromArgb(68, 74, 90), Color.FromArgb(52, 58, 72));
+    }
+
+    private void OpenSettings()
+    {
+        _idle.Stop();
+        using var settings = new SettingsForm(_cfg, _scale);
+        if (settings.ShowDialog(this) == DialogResult.OK)
+        {
+            // Config already saved by SettingsForm; apply new URL immediately
+            _owner.ApplyNewUrl(_cfg.Url);
+            Close();
+        }
+        else
+        {
+            // User cancelled — restart idle timer
+            _idle.Start();
+        }
     }
 
     private void StartCountdown(string verb, string args)
@@ -145,6 +169,7 @@ public sealed class MenuForm : Form
 
         RunShutdown($"{args} /t {_left}");
 
+        _settings.Visible = false;
         _shutdown.Visible = false;
         _restart.Visible = false;
         _title.Text = $"{_verb} in {_left}…";
@@ -176,14 +201,14 @@ public sealed class MenuForm : Form
             Size = new Size(_btnWidth, _btnHeight),
             BackColor = bg,
             ForeColor = Color.White,
-            Margin = new Padding(0, 0, 0, (int)(18 * _scale)),
+            Margin = new Padding(0, 0, 0, (int)(14 * _scale)),
             Cursor = Cursors.Hand,
             IconFontSize = _iconFontSize,
             LabelFontSize = _btnFontSize,
             ScaleFactor = _scale
         };
 
-        btn.Region = CreateRoundedRegion(btn.Width, btn.Height, (int)(16 * _scale));
+        btn.Region = CreateRoundedRegion(btn.Width, btn.Height, (int)(14 * _scale));
         return btn;
     }
 
