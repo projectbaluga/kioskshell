@@ -1,0 +1,11 @@
+{
+  "Url": "https://example.com",
+  "EdgePath": "",
+  "EdgeZonePx": 28,
+  "DragDistancePx": 120,
+  "GestureMaxMilliseconds": 1500,
+  "MenuTimeoutSeconds": 20,
+  "ShutdownDelaySeconds": 10,
+  "OfflineRetrySeconds": 15,
+  "RestartEdgeOnExit": true
+}
