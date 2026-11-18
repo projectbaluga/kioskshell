@@ -14,7 +14,8 @@ This README is the project's single user and developer guide. It documents behav
 - Provides a Settings dialog to change and save the page URL.
 - Provides a delayed shutdown or restart action, with a Cancel action that can abort the pending shutdown.
 - Shows a configurable offline page and retries navigation automatically.
-- Can be configured as a Windows Assigned Access single-app kiosk using the included PowerShell script.
+- Shows a first-run setup wizard, requests Administrator approval through UAC, and configures Windows Assigned Access using the included PowerShell installer.
+- Writes an install marker after successful setup so subsequent launches go directly to the fullscreen kiosk.
 
 KioskShell is a fullscreen application and kiosk launcher. The source does not implement a complete Windows security boundary: it does not disable every operating-system shortcut or prevent a user with sufficient Windows access from changing system settings.
 
@@ -180,7 +181,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\Manage-Kiosk.ps1 -Action Remove
 ```
 
-The remove action clears the Assigned Access configuration and removes the EdgeUI `AllowEdgeSwipe` policy value. It does **not** delete the copied application files or automatically delete the Windows kiosk account. Restart and sign in with a normal account after removal; review the kiosk account in Windows Settings if you no longer need it.
+The remove action clears the Assigned Access configuration and restores the EdgeUI `AllowEdgeSwipe` value to its pre-install state when a saved state is available. It also removes the first-run completion marker. It does **not** delete the copied application files or automatically delete the Windows kiosk account. Restart and sign in with a normal account after removal; review the kiosk account in Windows Settings if you no longer need it.
 
 ### Exiting the assigned kiosk session
 
@@ -207,7 +208,7 @@ The GitHub Actions workflow at `.github/workflows/build.yml` runs on pushes and 
 
 | Path | Responsibility |
 | --- | --- |
-| `KioskShell/Program.cs` | Single-instance startup, configuration loading/saving, app paths, and logging. |
+| `KioskShell/Program.cs` | Single-instance startup, first-run detection, configuration loading/saving, app paths, and logging. |\n| `KioskShell/SetupWizardForm.cs` | First-run wizard and UAC-elevated installer launch. |
 | `KioskShell/KioskForm.cs` | Fullscreen host window, WebView2 initialization/settings, URL resolution, navigation, offline fallback/retry, and gesture bridge. |
 | `KioskShell/MenuForm.cs` | Fullscreen power menu, idle timeout, shutdown/restart countdown, and menu actions. |
 | `KioskShell/SettingsForm.cs` | Dialog for changing and saving the page URL. |
