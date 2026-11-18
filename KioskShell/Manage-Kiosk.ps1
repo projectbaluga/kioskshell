@@ -10,7 +10,8 @@
 #>
 param(
     [Parameter(Mandatory)][ValidateSet('Install', 'Remove')][string]$Action,
-    [string]$InstallDir = 'C:\KioskShell'
+    [string]$InstallDir = 'C:\KioskShell',
+    [string]$DisplayName = 'Kiosk'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -86,7 +87,7 @@ if ($Action -eq 'Install') {
   </Profiles>
   <Configs>
     <Config>
-      <AutoLogonAccount rs5:DisplayName="Kiosk" />
+      <AutoLogonAccount rs5:DisplayName="$([System.Security.SecurityElement]::Escape($DisplayName))" />
       <DefaultProfile Id="$guid" />
     </Config>
   </Configs>
@@ -104,8 +105,9 @@ Set-CimInstance -CimInstance `$obj
     Invoke-AsSystem $code
 
     # 4. Kiosk hardening: no edge-swipe Widgets/Notification Center, and real cold shutdowns.
-    reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\EdgeUI" /v AllowEdgeSwipe /t REG_DWORD /d 0 /f | Out-Null
-    powercfg /h off | Out-Null
+    New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EdgeUI' -Force | Out-Null
+    New-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EdgeUI' -Name AllowEdgeSwipe -PropertyType DWord -Value 0 -Force | Out-Null
+    Set-Content -Path (Join-Path $dst '.kioskshell-installed') -Value '1' -Encoding ASCII
 
     Write-Host ''
     Write-Host "Installed to: $dst" -ForegroundColor Green
@@ -128,6 +130,7 @@ Set-CimInstance -CimInstance `$obj
 "@
     Invoke-AsSystem $code
     Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EdgeUI' -Name AllowEdgeSwipe -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $InstallDir '.kioskshell-installed') -Force -ErrorAction SilentlyContinue
 
     Write-Host 'Kiosk configuration removed. Restart and sign in with your normal account.' -ForegroundColor Green
     Write-Host 'Files were left in place. The auto-created kiosk account can be deleted in Settings > Accounts if you no longer need it.'
