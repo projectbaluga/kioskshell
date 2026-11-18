@@ -65,7 +65,7 @@ jobs:
           Write-Host "Current run id: $current"
 
           # List all completed runs of this workflow (keep the current one)
-          $runs = gh api "repos/$repo/actions/runs?per_page=100" --jq '.workflow_runs[] | select(.status=="completed") | .id' 2>$null
+          $runs = gh run list --workflow build.yml --limit 100 --json databaseId,status --jq '.[] | select(.status=="completed") | .databaseId' 2>$null
           if (-not $runs) {
             Write-Host "No previous runs found (or API returned empty)."
             exit 0
