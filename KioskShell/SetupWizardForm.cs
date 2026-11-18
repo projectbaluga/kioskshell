@@ -133,14 +133,15 @@ internal sealed class SetupWizardForm : Form
 
         try
         {
-            var args = $"-NoProfile -ExecutionPolicy Bypass -File \"{script}\" -Action Install -InstallDir \"{installDir}\" -DisplayName \"{display.Replace("\"", "\"\"")}\"";
-            Process.Start(new ProcessStartInfo("powershell.exe", args)
+            var start = new ProcessStartInfo("powershell.exe")
             {
                 UseShellExecute = true,
                 Verb = "runas",
                 WorkingDirectory = AppPaths.BaseDir
-            });
-            DialogResult = DialogResult.OK;
+            };
+            foreach (var arg in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-Action", "Install", "-InstallDir", installDir, "-DisplayName", display })
+                start.ArgumentList.Add(arg);
+            Process.Start(start);
             Close();
         }
         catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
