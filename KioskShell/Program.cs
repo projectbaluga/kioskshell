@@ -16,6 +16,15 @@ internal static class Program
         Application.ThreadException += (_, e) => Log.Write("UI exception: " + e.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Write("Fatal: " + e.ExceptionObject);
 
+        // A successful Assigned Access install writes this marker beside the installed executable.
+        // Subsequent launches go straight to kiosk mode.
+        var installMarker = Path.Combine(AppPaths.BaseDir, ".kioskshell-installed");
+        if (!File.Exists(installMarker))
+        {
+            Application.Run(new SetupWizardForm());
+            return;
+        }
+
         Application.Run(new KioskForm(KioskConfig.Load()));
     }
 }
