@@ -104,7 +104,7 @@ Set-CimInstance -CimInstance `$obj
 "@
     Invoke-AsSystem $code
 
-    # 4. Kiosk hardening: no edge-swipe Widgets/Notification Center, and real cold shutdowns.
+    # 4. Apply the kiosk-specific Edge swipe policy while preserving the previous value for uninstall.
     $edgePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EdgeUI'
     $edgeBefore = Get-ItemProperty -Path $edgePath -Name AllowEdgeSwipe -ErrorAction SilentlyContinue
     $state = [ordered]@{ EdgeKeyExisted = Test-Path $edgePath; EdgeValueExisted = ($null -ne $edgeBefore); EdgeValue = if ($null -ne $edgeBefore) { [int]$edgeBefore.AllowEdgeSwipe } else { $null } }
