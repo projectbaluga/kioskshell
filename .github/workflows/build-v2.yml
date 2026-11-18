@@ -5,6 +5,7 @@ on:
     paths:
       - 'KioskShell2/**'
       - '.github/workflows/build-v2.yml'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 permissions:
   contents: read
