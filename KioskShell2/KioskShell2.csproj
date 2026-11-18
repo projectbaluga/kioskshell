@@ -19,5 +19,6 @@
   </PropertyGroup>
   <ItemGroup>
     <None Update="kiosk.v2.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="offline.html" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
