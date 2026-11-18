@@ -21,6 +21,24 @@ jobs:
         run: |
           dotnet publish KioskShell/KioskShell.csproj -c Release -o portable/KioskShell-Portable -p:PublishSingleFile=true -p:SelfContained=true -p:IncludeNativeLibrariesForSelfExtract=true
 
+      - name: Stage required portable-package files
+        shell: pwsh
+        run: |
+          $dir = "portable/KioskShell-Portable"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item -LiteralPath "KioskShell/Manage-Kiosk.ps1" -Destination (Join-Path $dir "Manage-Kiosk.ps1") -Force
+          Copy-Item -LiteralPath "KioskShell/kiosk.json" -Destination (Join-Path $dir "kiosk.json") -Force
+          if (Test-Path "KioskShell/assets") {
+            Copy-Item -Path "KioskShell/assets" -Destination $dir -Recurse -Force
+          }
+          if (-not (Test-Path (Join-Path $dir "KioskShell.exe"))) {
+            throw "KioskShell.exe is missing from the publish output."
+          }
+          if (-not (Test-Path (Join-Path $dir "Manage-Kiosk.ps1"))) {
+            throw "Manage-Kiosk.ps1 is missing from the portable package."
+          }
+          Write-Host "Verified portable package includes KioskShell.exe and Manage-Kiosk.ps1."
+
       - name: Clean extra files (keep only what end-users need)
         shell: pwsh
         run: |
