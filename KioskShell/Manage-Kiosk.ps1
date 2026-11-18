@@ -105,8 +105,12 @@ Set-CimInstance -CimInstance `$obj
     Invoke-AsSystem $code
 
     # 4. Kiosk hardening: no edge-swipe Widgets/Notification Center, and real cold shutdowns.
-    New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EdgeUI' -Force | Out-Null
-    New-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EdgeUI' -Name AllowEdgeSwipe -PropertyType DWord -Value 0 -Force | Out-Null
+    $edgePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EdgeUI'
+    $edgeBefore = Get-ItemProperty -Path $edgePath -Name AllowEdgeSwipe -ErrorAction SilentlyContinue
+    $state = [ordered]@{ EdgeKeyExisted = Test-Path $edgePath; EdgeValueExisted = ($null -ne $edgeBefore); EdgeValue = if ($null -ne $edgeBefore) { [int]$edgeBefore.AllowEdgeSwipe } else { $null } }
+    $state | ConvertTo-Json | Set-Content -Path (Join-Path $workDir 'install-state.json') -Encoding UTF8
+    New-Item -Path $edgePath -Force | Out-Null
+    New-ItemProperty -Path $edgePath -Name AllowEdgeSwipe -PropertyType DWord -Value 0 -Force | Out-Null
     Set-Content -Path (Join-Path $dst '.kioskshell-installed') -Value '1' -Encoding ASCII
 
     Write-Host ''
@@ -129,7 +133,19 @@ if ($Action -eq 'Remove') {
 Set-CimInstance -CimInstance `$obj
 "@
     Invoke-AsSystem $code
-    Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EdgeUI' -Name AllowEdgeSwipe -ErrorAction SilentlyContinue
+    $edgePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\EdgeUI'
+    $statePath = Join-Path $workDir 'install-state.json'
+    if (Test-Path $statePath) {
+        $state = Get-Content $statePath -Raw | ConvertFrom-Json
+        if ($state.EdgeValueExisted) {
+            New-Item -Path $edgePath -Force | Out-Null
+            New-ItemProperty -Path $edgePath -Name AllowEdgeSwipe -PropertyType DWord -Value ([int]$state.EdgeValue) -Force | Out-Null
+        } else {
+            Remove-ItemProperty -Path $edgePath -Name AllowEdgeSwipe -ErrorAction SilentlyContinue
+            if (-not $state.EdgeKeyExisted) { Remove-Item -Path $edgePath -ErrorAction SilentlyContinue }
+        }
+        Remove-Item $statePath -Force -ErrorAction SilentlyContinue
+    }
     Remove-Item (Join-Path $InstallDir '.kioskshell-installed') -Force -ErrorAction SilentlyContinue
 
     Write-Host 'Kiosk configuration removed. Restart and sign in with your normal account.' -ForegroundColor Green
