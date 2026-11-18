@@ -53,6 +53,8 @@ internal sealed class GestureWindow : Form
             case WM_POINTERDOWN:
             case WM_LBUTTONDOWN:
                 Begin(GetPoint(m.LParam));
+                if (m.Msg == WM_POINTERDOWN) SetPointerCapture(Handle, (uint)(m.WParam.ToInt64() & 0xffff));
+                else SetCapture(Handle);
                 break;
             case WM_POINTERUPDATE:
             case WM_MOUSEMOVE:
@@ -62,10 +64,15 @@ internal sealed class GestureWindow : Form
             case WM_LBUTTONUP:
                 _tracking = false;
                 _reset.Stop();
+                ReleaseCapture();
                 break;
         }
         base.WndProc(ref m);
     }
+
+    [DllImport("user32.dll")] private static extern IntPtr SetCapture(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern bool ReleaseCapture();
+    [DllImport("user32.dll")] private static extern bool SetPointerCapture(IntPtr hwnd, uint pointerId);
 
     private static Point GetPoint(IntPtr lp)
     {
