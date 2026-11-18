@@ -1,0 +1,31 @@
+name: KioskShell 2.0 production build
+on:
+  push:
+    branches: [feature/kioskshell-2-web-migration]
+    paths:
+      - 'KioskShell2/**'
+      - '.github/workflows/build-v2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-v2:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore and publish KioskShell 2.0
+        run: dotnet publish KioskShell2/KioskShell2.csproj -c Release -r win-x64 --self-contained true -o artifacts/KioskShell2
+      - name: Stage installer and configuration
+        shell: pwsh
+        run: |
+          Copy-Item KioskShell2/Install-KioskShell2.ps1 artifacts/KioskShell2/Install-KioskShell2.ps1
+          if (!(Test-Path artifacts/KioskShell2/KioskShell2.exe)) { throw 'KioskShell2.exe missing.' }
+          if (!(Test-Path artifacts/KioskShell2/kiosk.v2.json)) { throw 'kiosk.v2.json missing.' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KioskShell2-Production-Candidate
+          path: artifacts/KioskShell2
+          if-no-files-found: error
