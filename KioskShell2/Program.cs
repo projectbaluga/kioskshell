@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -23,7 +24,11 @@ internal sealed class KioskContext : ApplicationContext
     private readonly KioskConfig _config;
     private readonly GestureWindow _gesture;
     private readonly System.Windows.Forms.Timer _watchdog = new() { Interval = 3000 };
+    private static readonly HttpClient ProbeClient = new() { Timeout = TimeSpan.FromSeconds(6) };
     private Process? _edge;
+    private bool _isOffline;
+    private bool _probeRunning;
+    private DateTime _lastProbeUtc = DateTime.MinValue;
     private KioskMenu? _menu;
     private bool _exiting;
 
@@ -34,7 +39,7 @@ internal sealed class KioskContext : ApplicationContext
         _gesture.GestureRecognized += (_, _) => ShowMenu();
         _gesture.Show();
         LaunchEdge();
-        _watchdog.Tick += (_, _) => CheckEdge();
+        _watchdog.Tick += async (_, _) => await CheckEdgeAsync();
         _watchdog.Start();
         AppLog.Write("KioskShell 2.0 helper started.");
     }
@@ -57,7 +62,10 @@ internal sealed class KioskContext : ApplicationContext
                 UseShellExecute = false,
                 WorkingDirectory = Path.GetDirectoryName(edgePath)!
             };
-            foreach (var arg in new[] { "--kiosk", _config.Url, "--edge-kiosk-type=fullscreen", "--no-first-run", "--disable-pinch", "--overscroll-history-navigation=0", "--user-data-dir=" + profile })
+            var launchUrl = _isOffline
+                ? new Uri(Path.Combine(AppPaths.BaseDir, "offline.html")).AbsoluteUri
+                : _config.Url;
+            foreach (var arg in new[] { "--kiosk", launchUrl, "--edge-kiosk-type=fullscreen", "--no-first-run", "--disable-pinch", "--overscroll-history-navigation=0", "--user-data-dir=" + profile })
                 psi.ArgumentList.Add(arg);
             _edge = Process.Start(psi);
             AppLog.Write("Started Edge kiosk for " + _config.Url);
@@ -65,9 +73,27 @@ internal sealed class KioskContext : ApplicationContext
         catch (Exception ex) { AppLog.Write("Edge launch failed: " + ex); }
     }
 
-    private void CheckEdge()
+    private async Task CheckEdgeAsync()
     {
-        if (_exiting || !_config.RestartEdgeOnExit) return;
+        if (_exiting) return;
+        if (!_probeRunning && (DateTime.UtcNow - _lastProbeUtc).TotalSeconds >= Math.Max(5, _config.OfflineRetrySeconds))
+        {
+            _probeRunning = true;
+            _lastProbeUtc = DateTime.UtcNow;
+            try
+            {
+                using var response = await ProbeClient.GetAsync(_config.Url, HttpCompletionOption.ResponseHeadersRead);
+                SetOfflineState(false);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Write("Website probe failed: " + ex.Message);
+                SetOfflineState(true);
+            }
+            finally { _probeRunning = false; }
+        }
+
+        if (!_config.RestartEdgeOnExit) return;
         try
         {
             if (_edge is null || _edge.HasExited)
@@ -79,6 +105,14 @@ internal sealed class KioskContext : ApplicationContext
             }
         }
         catch (Exception ex) { AppLog.Write("Edge watchdog error: " + ex.Message); }
+    }
+
+    private void SetOfflineState(bool offline)
+    {
+        if (_isOffline == offline) return;
+        _isOffline = offline;
+        AppLog.Write(offline ? "Website is unreachable; switching Edge to local offline page." : "Website is reachable; restoring configured URL.");
+        try { _edge?.Kill(entireProcessTree: true); } catch (Exception ex) { AppLog.Write("Could not switch Edge page: " + ex.Message); }
     }
 
     private void ShowMenu()
